@@ -30,6 +30,8 @@
   .barre i { display:block; height:100%; width:0; background:var(--primary); transition:width .6s ease; }
   .err { color:var(--err); }
   .ok { color:var(--ok); }
+  .gros { display:flex; align-items:center; justify-content:center; min-height:64px; border-radius:999px; background:var(--ok); color:#04130c; font-weight:700; font-size:20px; text-decoration:none; margin-top:16px; }
+  #reveil { display:flex; align-items:center; justify-content:center; text-align:center; text-decoration:underline; }
   #jeton { display:none; text-align:left; margin-top:20px; }
   label { display:block; font-weight:600; margin-bottom:6px; }
   input { width:100%; min-height:48px; border-radius:12px; border:1px solid rgba(255,255,255,.2); background:rgba(5,11,36,.6); color:var(--txt); padding:0 14px; font:inherit; }
@@ -55,6 +57,11 @@
     <p id="dec" class="decompte" aria-hidden="true"></p>
     <p id="etape" class="etape"></p>
     <div class="barre" aria-hidden="true"><i id="prog"></i></div>
+  </div>
+
+  <div id="pret" hidden>
+    <a id="ouvrir" class="gros" href="https://super-duper-bassoon-q6w5667vpvxc46qq-9119.app.github.dev/">Ouvrir Hermès</a>
+    <a id="reveil" class="lien" href="https://super-duper-bassoon-q6w5667vpvxc46qq.github.dev/" target="_blank" rel="noopener">Ça ne s'ouvre pas ? Réveiller la connexion</a>
   </div>
 
   <form id="jeton">
@@ -98,12 +105,18 @@
     });
   }
 
+  function pret() {
+    go.style.display = "none"; document.getElementById("pret").hidden = false;
+    document.getElementById("ouvrir").focus();
+    setTimeout(function () { location.href = DASHBOARD + "/"; }, 1500);
+  }
+
   async function lancer() {
     if (!jeton()) { form.style.display = "block"; cle.focus(); dire("Il faut d'abord ton jeton GitHub."); return; }
     go.disabled = true; barre(5);
     try {
       var cs = await api("GET");
-      if (cs.state === "Available") { dire("Déjà allumé. J'ouvre…", "ok"); barre(100); location.href = DASHBOARD; return; }
+      if (cs.state === "Available") { dire("Déjà allumé.", "ok"); barre(100); pret(); return; }
       dire("Il reste environ :"); etape("Étape 1 sur 2 : j'allume le codespace");
       decompte(ESTIME_CS + ATTENTE_HERMES);
       if (cs.state !== "Starting" && cs.state !== "Queued" && cs.state !== "Provisioning") await api("POST", "/start");
@@ -125,8 +138,7 @@
         decompte(i);
         await attendre(1000);
       }
-      decompte(0); etape(""); barre(100); dire("C'est prêt. J'ouvre…", "ok");
-      location.href = DASHBOARD;
+      decompte(0); etape(""); barre(100); dire("C'est prêt.", "ok"); pret();
     } catch (e) {
       go.disabled = false; barre(0); decompte(0); etape("");
       if (e.message === "jeton") { dire("Le jeton est refusé. Mets-en un nouveau.", "err"); form.style.display = "block"; }
