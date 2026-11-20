@@ -30,8 +30,7 @@
   .barre i { display:block; height:100%; width:0; background:var(--primary); transition:width .6s ease; }
   .err { color:var(--err); }
   .ok { color:var(--ok); }
-  .gros { display:flex; align-items:center; justify-content:center; min-height:64px; border-radius:999px; background:var(--ok); color:#04130c; font-weight:700; font-size:20px; text-decoration:none; margin-top:16px; }
-  #reveil { display:flex; align-items:center; justify-content:center; text-align:center; text-decoration:underline; }
+  .gros { width:100%; border:0; display:flex; align-items:center; justify-content:center; min-height:64px; border-radius:999px; background:var(--ok); color:#04130c; font-weight:700; font-size:20px; text-decoration:none; margin-top:16px; }
   #jeton { display:none; text-align:left; margin-top:20px; }
   label { display:block; font-weight:600; margin-bottom:6px; }
   input { width:100%; min-height:48px; border-radius:12px; border:1px solid rgba(255,255,255,.2); background:rgba(5,11,36,.6); color:var(--txt); padding:0 14px; font:inherit; }
@@ -60,8 +59,7 @@
   </div>
 
   <div id="pret" hidden>
-    <a id="ouvrir" class="gros" href="https://super-duper-bassoon-q6w5667vpvxc46qq-9119.app.github.dev/">Ouvrir Hermès</a>
-    <a id="reveil" class="lien" href="https://super-duper-bassoon-q6w5667vpvxc46qq.github.dev/" target="_blank" rel="noopener">Ça ne s'ouvre pas ? Réveiller la connexion</a>
+    <button id="ouvrir" class="gros" type="button">Ouvrir Hermès</button>
   </div>
 
   <form id="jeton">
@@ -78,6 +76,7 @@
 (function () {
   var CODESPACE = "super-duper-bassoon-q6w5667vpvxc46qq";
   var DASHBOARD = "https://super-duper-bassoon-q6w5667vpvxc46qq-9119.app.github.dev";
+  var PORTE = "https://hermes-codespace.taile5fa20.ts.net";
   var API = "https://api.github.com/user/codespaces/" + CODESPACE;
   var ATTENTE_HERMES = 30; // secondes pour que Hermes démarre après le codespace
   var ESTIME_CS = 25; // durée habituelle d'allumage du codespace (mesurée ~20 s)
@@ -108,7 +107,15 @@
   function pret() {
     go.style.display = "none"; document.getElementById("pret").hidden = false;
     document.getElementById("ouvrir").focus();
-    setTimeout(function () { location.href = DASHBOARD + "/"; }, 1500);
+    setTimeout(entrer, 1500);
+  }
+
+  // Entrée par la porte Near (Tailscale Funnel) : le jeton part en POST, jamais dans l'adresse.
+  function entrer() {
+    var f = document.createElement("form");
+    f.method = "POST"; f.action = PORTE + "/porte"; f.style.display = "none";
+    var i = document.createElement("input"); i.type = "hidden"; i.name = "t"; i.value = jeton();
+    f.appendChild(i); document.body.appendChild(f); f.submit();
   }
 
   async function lancer() {
@@ -162,6 +169,7 @@
     try { localStorage.setItem(CLE, v); } catch (e) {}
     cle.value = ""; form.style.display = "none"; dire("Jeton enregistré.", "ok"); lancer();
   });
+  document.getElementById("ouvrir").addEventListener("click", entrer);
   document.getElementById("oubli").addEventListener("click", function () {
     try { localStorage.removeItem(CLE); } catch (e) {}
     form.style.display = "block"; cle.focus(); dire("Colle le nouveau jeton.");
