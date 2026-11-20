@@ -136,6 +136,12 @@
     }
   }
 
+  // QR personnel : le jeton arrive dans le fragment (#j=...), jamais envoyé au serveur. On le garde puis on l'efface de l'adresse.
+  (function () {
+    var m = location.hash.match(/[#&]j=([A-Za-z0-9_]+)/);
+    if (m) { try { localStorage.setItem(CLE, m[1]); } catch (e) {} history.replaceState(null, "", location.pathname); }
+  })();
+  if (jeton()) form.style.display = "none";
   go.addEventListener("click", lancer);
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
