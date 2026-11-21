@@ -20,6 +20,7 @@
   button:focus-visible, input:focus-visible, a:focus-visible { outline:3px solid #9ec1ff; outline-offset:3px; }
   #go { background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; gap:10px; }
   #go:disabled { opacity:.7; cursor:wait; }
+  .arret { background:transparent; color:#ffd2cd; border:2px solid var(--err); margin-top:14px; }
   .lien { background:transparent; color:var(--muted); min-height:44px; font-size:15px; font-weight:500; margin-top:12px; }
   .etat { margin-top:22px; min-height:52px; }
   .etat p { margin:6px 0 0; }
@@ -72,6 +73,7 @@
     <button id="save" type="submit">Enregistrer</button>
   </form>
 
+  <button id="stop" class="arret" type="button" hidden>Éteindre Hermès</button>
   <button id="oubli" class="lien" type="button">Changer le jeton</button>
 </main>
 <script>
@@ -146,7 +148,32 @@
     });
   }
 
+  // Bouton « Éteindre Hermès » : la porte sauve la mémoire puis arrête. Sinon, arrêt direct par GitHub.
+  var stopB = document.getElementById("stop");
+  async function eteindre() {
+    stopB.disabled = true; dire("J'éteins Hermès. Je sauve sa mémoire d'abord.");
+    try {
+      await trouver();
+      var ok = false;
+      try { var r = await fetch(PORTE + "/eteindre", { method: "POST", body: new URLSearchParams({ t: jeton() }) }); ok = r.status === 202; } catch (e) {}
+      if (!ok) await api("POST", "/stop");
+      for (var i = 0; i < 90; i++) {
+        await attendre(2000);
+        var cs = await api("GET");
+        if (cs.state === "Shutdown") { dire("Hermès est éteint. Tes heures sont protégées.", "ok"); stopB.hidden = true; go.style.display = ""; go.disabled = false; document.getElementById("pret").hidden = true; pct = 0; barre(0); decompte(0); heures(); return; }
+        if (i === 45 && ok) await api("POST", "/stop");
+      }
+      dire("Ça prend du temps. Il s'éteindra tout seul.", "err");
+    } catch (e) { dire("Je n'ai pas pu l'éteindre. Réessaie.", "err"); }
+    stopB.disabled = false;
+  }
+  async function etatDepart() {
+    if (!jeton()) return;
+    try { await trouver(); var cs = await api("GET"); stopB.hidden = !(cs.state === "Available" || cs.state === "Starting"); } catch (e) {}
+  }
+
   function pret() {
+    stopB.hidden = false;
     go.style.display = "none"; document.getElementById("pret").hidden = false;
     document.getElementById("ouvrir").focus();
     setTimeout(entrer, 1500);
@@ -203,7 +230,8 @@
     if (m) { try { localStorage.setItem(CLE, m[1]); } catch (e) {} history.replaceState(null, "", location.pathname); }
   })();
   if (jeton()) form.style.display = "none";
-  heures();
+  heures(); etatDepart();
+  stopB.addEventListener("click", eteindre);
   go.addEventListener("click", lancer);
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
